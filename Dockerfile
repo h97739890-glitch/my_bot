@@ -1,0 +1,15 @@
+# استخدم Python 3.10.13 كصورة أساسية
+FROM python:3.10.13
+
+# حدد مجلد العمل داخل الحاوية
+WORKDIR /app
+
+# انسخ كل ملفات المشروع إلى الحاوية
+COPY . /app
+
+# تحديث pip وتثبيت المكتبات المطلوبة
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+
+# الأمر الذي يشغل البوت عند بدء الحاوية
+CMD ["python", "بوت.py"]
