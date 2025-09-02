@@ -48,10 +48,11 @@ def get_news():
     return feed.entries
 
 # -----------------------------
-# كلمات مفتاحية للأخبار المهمة
+# كلمات مفتاحية للأخبار المؤثرة
 # -----------------------------
-KEYWORDS = ["Gold", "XAUUSD", "USD", "US Dollar", "USDJPY",
-            "Federal Reserve", "Inflation", "Interest Rate", "US Economy"]
+KEYWORDS = ["ذهب", "أسهم أمريكية", "ترامب", "ناسداك", "دولار",
+            "الاقتصاد الأمريكي", "الاحتياطي الفيدرالي", "الفيدرالي",
+            "جيروم باول", "أعضاء الفيدرالي", "تعريفات جمركية"]
 
 posted_urls = set()
 
@@ -72,10 +73,10 @@ def run_bot():
                 translated_title = translate_to_arabic(title)
                 translated_summary = translate_to_arabic(summarize_text(description))
 
-                # أيقونات للأخبار المهمة
-                if any(k in title for k in ["Gold", "XAUUSD"]):
+                # أيقونات للأخبار المهمة حسب النوع
+                if "ذهب" in title or "Gold" in title or "XAUUSD" in title:
                     alert_icon = "🟢🔥"
-                elif any(k in title for k in ["USD", "US Dollar", "USDJPY"]):
+                elif "دولار" in title or "USD" in title:
                     alert_icon = "💵⚡"
                 else:
                     alert_icon = "📈"
