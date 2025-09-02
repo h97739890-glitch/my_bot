@@ -4,6 +4,7 @@ import requests
 from googletrans import Translator
 import html
 import threading
+from flask import Flask
 
 # -----------------------------
 # إعدادات البوت و Telegram
@@ -36,8 +37,7 @@ def translate_to_arabic(text):
             time.sleep(1)
     return html.escape(text)
 
-def summarize_text(text, max_words=20):
-    # ملخص بسيط: أول n كلمات
+def summarize_text(text, max_words=25):
     words = text.split()
     if len(words) <= max_words:
         return text
@@ -47,38 +47,49 @@ def get_news():
     feed = feedparser.parse(RSS_URL)
     return feed.entries
 
+# -----------------------------
+# كلمات مفتاحية للأخبار المهمة
+# -----------------------------
+KEYWORDS = ["Gold", "XAUUSD", "USD", "US Dollar", "USDJPY",
+            "Federal Reserve", "Inflation", "Interest Rate", "US Economy"]
+
 posted_urls = set()
 
+def is_important(title, description):
+    text = title + " " + description
+    return any(keyword.lower() in text.lower() for keyword in KEYWORDS)
+
 def run_bot():
-    send_telegram("✅ بوت الأخبار الاقتصادية متصل وجاهز.")
+    send_telegram("✅ بوت الأخبار الاقتصادية المهمة متصل وجاهز.")
     while True:
         news = get_news()
         for article in news:
             title = article.title
             link = article.link
             description = getattr(article, "summary", "")
-            
-            if link not in posted_urls:
+
+            if link not in posted_urls and is_important(title, description):
                 translated_title = translate_to_arabic(title)
-                translated_summary = translate_to_arabic(summarize_text(description, max_words=25))
-                
-                # إشعار للأخبار المهمة (مثال: الذهب أو الدولار)
-                if "Gold" in title or "XAUUSD" in title:
+                translated_summary = translate_to_arabic(summarize_text(description))
+
+                # أيقونات للأخبار المهمة
+                if any(k in title for k in ["Gold", "XAUUSD"]):
                     alert_icon = "🟢🔥"
+                elif any(k in title for k in ["USD", "US Dollar", "USDJPY"]):
+                    alert_icon = "💵⚡"
                 else:
-                    alert_icon = "📰"
-                
+                    alert_icon = "📈"
+
                 msg = f"{alert_icon} <b>{translated_title}</b>\n{translated_summary}\n🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
                 send_telegram(msg)
                 posted_urls.add(link)
-                
                 time.sleep(2)  # لتخفيف الضغط على Telegram API
+
         time.sleep(600)  # تحقق كل 10 دقائق
 
 # -----------------------------
 # Web Service باستخدام Flask
 # -----------------------------
-from flask import Flask
 app = Flask(__name__)
 threading.Thread(target=run_bot).start()  # تشغيل البوت في Thread مستقل
 
