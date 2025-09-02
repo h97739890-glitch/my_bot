@@ -1,4 +1,4 @@
+googletrans==4.0.0-rc1
 requests
 feedparser
 flask
-googletrans==4.0.0-rc1
