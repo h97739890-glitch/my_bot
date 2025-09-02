@@ -2,6 +2,9 @@ import os
 import json
 import requests
 import websocket
+from flask import Flask
+
+app = Flask(__name__)
 
 # -----------------------------
 # إعدادات البوت والقناة
@@ -30,9 +33,7 @@ def send_telegram(text):
 # دالة ترجمة النصوص للعربية
 # -----------------------------
 def translate_to_arabic(text):
-    # هنا نستخدم ترجمة Google Translate API أو أي خدمة ترجمة
-    # للتمثيل سنعيد النص كما هو (استبدل هذه الدالة بخدمة ترجمة فعلية)
-    return text  # استبدل هذا بالكود الفعلي للترجمة
+    return text  # استبدل هذه بالدالة الفعلية للترجمة
 
 # -----------------------------
 # معالجة الأخبار الواردة
@@ -44,7 +45,6 @@ def on_message(ws, message):
             headline = item.get("headline", "")
             source = item.get("source", "")
             url = item.get("url", "")
-            # ترجمة الخبر للعربية
             headline_ar = translate_to_arabic(headline)
             msg = f"💱 <b>{headline_ar}</b>\n📌 {source}\n🔗 {url}"
             send_telegram(msg)
@@ -55,34 +55,25 @@ def on_error(ws, error):
 def on_close(ws, close_status_code, close_msg):
     print("Closed connection")
 
-# -----------------------------
-# عند فتح الاتصال
-# -----------------------------
 def on_open(ws):
-    # رسالة اختبار للتأكد أن البوت شغال
     send_telegram("✅ اختبار: البوت متصل الآن وجاهز لإرسال الأخبار بالعربية.")
-
-    # مصادقة
     auth = {"type": "auth", "token": FINNHUB_API_KEY}
     ws.send(json.dumps(auth))
 
-    # قراءة الرموز من ملف خارجي symbols.txt
     try:
         with open("symbols.txt", "r") as f:
             symbols = [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
-        # رموز افتراضية لو الملف غير موجود
         symbols = ["OANDA:EURUSD", "OANDA:GBPUSD", "OANDA:USDJPY", "OANDA:XAUUSD", "OANDA:XAGUSD"]
 
-    # الاشتراك في جميع الأزواج
     for sym in symbols:
         ws.send(json.dumps({"type": "subscribe", "symbol": sym}))
         print("Subscribed:", sym)
 
 # -----------------------------
-# تشغيل البوت
+# تشغيل WebSocket في الخلفية
 # -----------------------------
-if __name__ == "__main__":
+def run_ws():
     ws = websocket.WebSocketApp(
         "wss://ws.finnhub.io?token=" + FINNHUB_API_KEY,
         on_message=on_message,
@@ -91,3 +82,18 @@ if __name__ == "__main__":
         on_open=on_open,
     )
     ws.run_forever()
+
+# -----------------------------
+# Flask endpoint بسيط
+# -----------------------------
+@app.route("/")
+def home():
+    return "Bot is running ✅"
+
+# -----------------------------
+# Main
+# -----------------------------
+if __name__ == "__main__":
+    import threading
+    threading.Thread(target=run_ws).start()  # تشغيل البوت في الخلفية
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
