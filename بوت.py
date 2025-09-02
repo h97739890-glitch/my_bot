@@ -1,99 +1,50 @@
-import os
-import json
+import time
+import feedparser
+from googletrans import Translator
 import requests
-import websocket
-from flask import Flask
 
-app = Flask(__name__)
-
-# -----------------------------
-# إعدادات البوت والقناة
-# -----------------------------
+# إعدادات البوت
 TELEGRAM_TOKEN = "8185068243:AAHn7U1zyyjq4NH-MqVsC2Z3JcQghwrwkgg"
 TELEGRAM_CHAT_ID = "@OnyDiwaniya"
-FINNHUB_API_KEY = "d2r2sk9r01qlk22reqbgd2r2sk9r01qlk22reqc0"
+RSS_URL = "https://www.marketwatch.com/rss/topstories/metals"
+KEYWORDS = ["gold", "XAU", "USD", "interest rate", "inflation", "market", "central bank"]
 
-# -----------------------------
 # دالة إرسال رسالة للقناة
-# -----------------------------
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False,
-    }
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML"}
     try:
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
         print("Telegram error:", e)
 
-# -----------------------------
-# دالة ترجمة النصوص للعربية
-# -----------------------------
+# دالة لترجمة النصوص
 def translate_to_arabic(text):
-    return text  # استبدل هذه بالدالة الفعلية للترجمة
+    translator = Translator()
+    return translator.translate(text, src='en', dest='ar').text
 
-# -----------------------------
-# معالجة الأخبار الواردة
-# -----------------------------
-def on_message(ws, message):
-    data = json.loads(message)
-    if "data" in data:
-        for item in data["data"]:
-            headline = item.get("headline", "")
-            source = item.get("source", "")
-            url = item.get("url", "")
-            headline_ar = translate_to_arabic(headline)
-            msg = f"💱 <b>{headline_ar}</b>\n📌 {source}\n🔗 {url}"
-            send_telegram(msg)
+# دالة لاستخراج الأخبار من RSS
+def get_news():
+    feed = feedparser.parse(RSS_URL)
+    return feed.entries
 
-def on_error(ws, error):
-    print("Error:", error)
+# دالة لفحص الكلمات المفتاحية
+def contains_keywords(title):
+    return any(keyword.lower() in title.lower() for keyword in KEYWORDS)
 
-def on_close(ws, close_status_code, close_msg):
-    print("Closed connection")
+# حلقة المراقبة
+def run_bot():
+    send_telegram("✅ بوت الأخبار الاقتصادية متصل وجاهز.")
+    while True:
+        news = get_news()
+        for article in news:
+            title = article.title
+            link = article.link
+            if contains_keywords(title):
+                translated_title = translate_to_arabic(title)
+                msg = f"📰 {translated_title}\n🔗 {link}"
+                send_telegram(msg)
+        time.sleep(600)  # كل 10 دقائق
 
-def on_open(ws):
-    send_telegram("✅ اختبار: البوت متصل الآن وجاهز لإرسال الأخبار بالعربية.")
-    auth = {"type": "auth", "token": FINNHUB_API_KEY}
-    ws.send(json.dumps(auth))
-
-    try:
-        with open("symbols.txt", "r") as f:
-            symbols = [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        symbols = ["OANDA:EURUSD", "OANDA:GBPUSD", "OANDA:USDJPY", "OANDA:XAUUSD", "OANDA:XAGUSD"]
-
-    for sym in symbols:
-        ws.send(json.dumps({"type": "subscribe", "symbol": sym}))
-        print("Subscribed:", sym)
-
-# -----------------------------
-# تشغيل WebSocket في الخلفية
-# -----------------------------
-def run_ws():
-    ws = websocket.WebSocketApp(
-        "wss://ws.finnhub.io?token=" + FINNHUB_API_KEY,
-        on_message=on_message,
-        on_error=on_error,
-        on_close=on_close,
-        on_open=on_open,
-    )
-    ws.run_forever()
-
-# -----------------------------
-# Flask endpoint بسيط
-# -----------------------------
-@app.route("/")
-def home():
-    return "Bot is running ✅"
-
-# -----------------------------
-# Main
-# -----------------------------
 if __name__ == "__main__":
-    import threading
-    threading.Thread(target=run_ws).start()  # تشغيل البوت في الخلفية
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    run_bot()
