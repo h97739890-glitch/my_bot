@@ -11,20 +11,19 @@ from flask import Flask
 # -----------------------------
 TELEGRAM_TOKEN = "8185068243:AAHn7U1zyyjq4NH-MqVsC2Z3JcQghwrwkgg"
 TELEGRAM_CHAT_ID = "@OnyDiwaniya"
-RSS_URL = "https://www.marketwatch.com/rss/topstories/metals"
 CHANNEL_LINK = "https://t.me/OnyDiwaniya"
 
 translator = Translator()
 
 # -----------------------------
-# كلمات مفتاحية للأخبار المهمة
+# مصادر RSS للأخبار الاقتصادية
 # -----------------------------
-KEYWORDS = ["ذهب", "أسهم أمريكية", "ترامب", "ناسداك", "دولار",
-            "الاقتصاد الأمريكي", "الاحتياطي الفيدرالي", "الفيدرالي",
-            "جيروم باول", "أعضاء الفيدرالي", "تعريفات جمركية"]
-
-# كلمات لتجاهل الأخبار غير مهمة
-IGNORE_KEYWORDS = ["يانصيب", "جائزة", "مال", "لعب"]
+RSS_FEEDS = [
+    "https://www.investing.com/rss/news.rss",            # Investing.com
+    "https://www.reuters.com/tools/rss",                # Reuters
+    "https://www.cnbc.com/id/100003114/device/rss.html",# CNBC
+    
+]
 
 posted_urls = set()
 
@@ -56,25 +55,17 @@ def summarize_text(text, max_words=25):
     return ' '.join(words[:max_words]) + "..."
 
 def get_news():
-    feed = feedparser.parse(RSS_URL)
-    return feed.entries
-
-# -----------------------------
-# فلترة الأخبار المهمة فقط
-# -----------------------------
-def is_important(title):
-    title_lower = title.lower()
-    # تجاهل الأخبار غير المهمة
-    if any(word.lower() in title_lower for word in IGNORE_KEYWORDS):
-        return False
-    # نشر الأخبار المهمة فقط
-    return any(keyword.lower() in title_lower for keyword in KEYWORDS)
+    entries = []
+    for feed_url in RSS_FEEDS:
+        feed = feedparser.parse(feed_url)
+        entries.extend(feed.entries)
+    return entries
 
 # -----------------------------
 # تشغيل البوت
 # -----------------------------
 def run_bot():
-    send_telegram("✅ بوت الأخبار الاقتصادية المهمة متصل وجاهز.")
+    send_telegram("✅ بوت الأخبار الاقتصادية متصل وجاهز.")
     while True:
         news = get_news()
         for article in news:
@@ -82,22 +73,17 @@ def run_bot():
             link = article.link
             description = getattr(article, "summary", "")
 
-            if link not in posted_urls and is_important(title):
+            if link not in posted_urls:
                 translated_title = translate_to_arabic(title)
                 translated_summary = translate_to_arabic(summarize_text(description))
 
-                # أيقونات للأخبار المهمة
-                if any(k in title for k in ["ذهب", "Gold", "XAUUSD"]):
-                    alert_icon = "🟢🔥"
-                elif any(k in title for k in ["دولار", "USD", "USDJPY"]):
-                    alert_icon = "💵⚡"
-                else:
-                    alert_icon = "📈"
+                # أيقونات عامة للأخبار
+                alert_icon = "📰"
 
                 msg = f"{alert_icon} <b>{translated_title}</b>\n{translated_summary}\n🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
                 send_telegram(msg)
                 posted_urls.add(link)
-                time.sleep(2)  # تخفيف الضغط على Telegram API
+                time.sleep(2)  # لتخفيف الضغط على Telegram API
 
         time.sleep(600)  # تحقق كل 10 دقائق
 
