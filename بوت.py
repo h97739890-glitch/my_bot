@@ -1,7 +1,7 @@
 import time
 import feedparser
 import requests
-from deep_translator import MyMemoryTranslator
+from deep_translator import PonsTranslator
 from flask import Flask
 import threading
 
@@ -24,15 +24,14 @@ def send_telegram(text):
     except Exception as e:
         print("Telegram error:", e)
 
-def translate_to_arabic(text, retries=2):
-    for attempt in range(retries):
-        try:
-            translated = MyMemoryTranslator(source='en', target='ar').translate(text)
-            return translated
-        except Exception as e:
-            print(f"Translation error (attempt {attempt+1}): {e}")
-            time.sleep(1)
-    return text  # إذا فشلت كل المحاولات، أرجع النص الأصلي
+translator = PonsTranslator(source='en', target='ar')
+
+def translate_to_arabic(text):
+    try:
+        return translator.translate(text)
+    except Exception as e:
+        print("Translation error:", e)
+        return text  # ترجع النص الأصلي إذا فشلت الترجمة
 
 def get_news():
     feed = feedparser.parse(RSS_URL)
