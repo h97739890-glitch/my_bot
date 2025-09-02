@@ -19,11 +19,22 @@ translator = Translator()
 # مصادر RSS للأخبار الاقتصادية
 # -----------------------------
 RSS_FEEDS = [
-    "https://www.investing.com/rss/news.rss",            # Investing.com
-    "https://www.reuters.com/tools/rss",                # Reuters
-    "https://www.cnbc.com/id/100003114/device/rss.html",# CNBC
-    
+    "https://www.investing.com/rss/news.rss",
+    "https://www.marketwatch.com/rss/topstories/metals",
+    "https://www.reuters.com/tools/rss",
+    "https://www.cnbc.com/id/100003114/device/rss.html"
 ]
+
+# -----------------------------
+# كلمات مفتاحية للأخبار المؤثرة
+# -----------------------------
+KEYWORDS = ["ذهب", "gold", "xauusd",
+            "دولار", "usd", "us dollar",
+            "الاقتصاد الأمريكي", "us economy",
+            "الاحتياطي الفيدرالي", "federal reserve"]
+
+# كلمات لتجاهل الأخبار غير مهمة
+IGNORE_KEYWORDS = ["يانصيب", "جائزة", "مال", "لعب"]
 
 posted_urls = set()
 
@@ -62,10 +73,21 @@ def get_news():
     return entries
 
 # -----------------------------
+# فلترة الأخبار المهمة فقط
+# -----------------------------
+def is_important(title):
+    title_lower = title.lower()
+    # تجاهل الأخبار العامة
+    if any(word.lower() in title_lower for word in IGNORE_KEYWORDS):
+        return False
+    # نشر الأخبار المهمة فقط
+    return any(keyword.lower() in title_lower for keyword in KEYWORDS)
+
+# -----------------------------
 # تشغيل البوت
 # -----------------------------
 def run_bot():
-    send_telegram("✅ بوت الأخبار الاقتصادية متصل وجاهز.")
+    send_telegram("✅ بوت الأخبار الاقتصادية المهمة متصل وجاهز.")
     while True:
         news = get_news()
         for article in news:
@@ -73,17 +95,22 @@ def run_bot():
             link = article.link
             description = getattr(article, "summary", "")
 
-            if link not in posted_urls:
+            if link not in posted_urls and is_important(title):
                 translated_title = translate_to_arabic(title)
                 translated_summary = translate_to_arabic(summarize_text(description))
 
-                # أيقونات عامة للأخبار
-                alert_icon = "📰"
+                # أيقونات حسب نوع الخبر
+                if any(k in title.lower() for k in ["ذهب", "gold", "xauusd"]):
+                    alert_icon = "🟢🔥"
+                elif any(k in title.lower() for k in ["دولار", "usd", "us dollar"]):
+                    alert_icon = "💵⚡"
+                else:
+                    alert_icon = "📈"
 
                 msg = f"{alert_icon} <b>{translated_title}</b>\n{translated_summary}\n🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
                 send_telegram(msg)
                 posted_urls.add(link)
-                time.sleep(2)  # لتخفيف الضغط على Telegram API
+                time.sleep(2)  # تخفيف الضغط على Telegram API
 
         time.sleep(600)  # تحقق كل 10 دقائق
 
