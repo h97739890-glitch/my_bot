@@ -11,8 +11,7 @@ import threading
 TELEGRAM_TOKEN = "8185068243:AAHn7U1zyyjq4NH-MqVsC2Z3JcQghwrwkgg"
 TELEGRAM_CHAT_ID = "@OnyDiwaniya"
 RSS_URL = "https://www.marketwatch.com/rss/topstories/metals"
-KEYWORDS = ["gold", "XAU", "USD", "interest rate", "inflation", "market", "central bank"]
-CHANNEL_LINK = "https://t.me/OnyDiwaniya"  # رابط القناة الذي سيضاف لكل رسالة
+CHANNEL_LINK = "https://t.me/OnyDiwaniya"  # رابط القناة
 
 # -----------------------------
 # دوال البوت
@@ -25,19 +24,19 @@ def send_telegram(text):
     except Exception as e:
         print("Telegram error:", e)
 
-def translate_to_arabic(text):
-    try:
-        return MyMemoryTranslator(source='en', target='ar').translate(text)
-    except Exception as e:
-        print("Translation error:", e)
-        return text
+def translate_to_arabic(text, retries=2):
+    for attempt in range(retries):
+        try:
+            translated = MyMemoryTranslator(source='en', target='ar').translate(text)
+            return translated
+        except Exception as e:
+            print(f"Translation error (attempt {attempt+1}): {e}")
+            time.sleep(1)
+    return text  # إذا فشلت كل المحاولات، أرجع النص الأصلي
 
 def get_news():
     feed = feedparser.parse(RSS_URL)
     return feed.entries
-
-def contains_keywords(title):
-    return any(keyword.lower() in title.lower() for keyword in KEYWORDS)
 
 posted_urls = set()
 
@@ -48,9 +47,9 @@ def run_bot():
         for article in news:
             title = article.title
             link = article.link
-            if link not in posted_urls and contains_keywords(title):
+            if link not in posted_urls:  # نشر جميع الأخبار بدون فلترة
                 translated_title = translate_to_arabic(title)
-                msg = f"📰 {translated_title}\n🔗 قناتنا: {CHANNEL_LINK}"  # إضافة رابط القناة
+                msg = f"📰 {translated_title}\n🔗 قناتنا: {CHANNEL_LINK}"  # رابط القناة
                 send_telegram(msg)
                 posted_urls.add(link)
         time.sleep(600)  # كل 10 دقائق
