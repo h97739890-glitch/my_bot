@@ -1,10 +1,9 @@
 import time
 import feedparser
 import requests
-from googletrans import Translator
-import html
 import threading
 from flask import Flask
+import html
 
 # -----------------------------
 # إعدادات البوت و Telegram
@@ -13,28 +12,32 @@ TELEGRAM_TOKEN = "8185068243:AAHn7U1zyyjq4NH-MqVsC2Z3JcQghwrwkgg"
 TELEGRAM_CHAT_ID = "@OnyDiwaniya"
 CHANNEL_LINK = "https://t.me/OnyDiwaniya"
 
-translator = Translator()
-
 # -----------------------------
-# مصادر RSS للأخبار الاقتصادية
+# مصادر أخبار الفوركس
 # -----------------------------
 RSS_FEEDS = [
     "https://www.investing.com/rss/news.rss",
-    "https://www.marketwatch.com/rss/topstories/metals",
-    "https://www.reuters.com/tools/rss",
-    "https://www.cnbc.com/id/100003114/device/rss.html"
+    "https://www.dailyfx.com/feeds/forex.xml",
+    "https://www.fxstreet.com/rss/news"
 ]
 
 # -----------------------------
-# كلمات مفتاحية للأخبار المؤثرة
+# الكلمات المفتاحية للفوركس
 # -----------------------------
-KEYWORDS = ["ذهب", "gold", "xauusd",
-            "دولار", "usd", "us dollar",
-            "الاقتصاد الأمريكي", "us economy",
-            "الاحتياطي الفيدرالي", "federal reserve"]
+FOREX_KEYWORDS = [
+    "forex", "currency", "exchange rate",
+    "usd", "dollar",
+    "eur", "euro",
+    "gbp", "pound", "sterling",
+    "jpy", "yen",
+    "chf", "swiss franc",
+    "cad", "loonie",
+    "aud", "aussie",
+    "nzd", "kiwi",
+    "central bank", "interest rate", "monetary policy"
+]
 
-# كلمات لتجاهل الأخبار غير مهمة
-IGNORE_KEYWORDS = ["يانصيب", "جائزة", "مال", "لعب"]
+IGNORE_KEYWORDS = ["lottery", "jackpot", "crypto", "bitcoin", "lotto"]
 
 posted_urls = set()
 
@@ -49,16 +52,6 @@ def send_telegram(text):
     except Exception as e:
         print("Telegram error:", e)
 
-def translate_to_arabic(text):
-    for _ in range(3):
-        try:
-            translated = translator.translate(text, src='en', dest='ar').text
-            return html.escape(translated)
-        except Exception as e:
-            print("Translation error:", e)
-            time.sleep(1)
-    return html.escape(text)
-
 def summarize_text(text, max_words=25):
     words = text.split()
     if len(words) <= max_words:
@@ -68,26 +61,27 @@ def summarize_text(text, max_words=25):
 def get_news():
     entries = []
     for feed_url in RSS_FEEDS:
-        feed = feedparser.parse(feed_url)
-        entries.extend(feed.entries)
+        try:
+            feed = feedparser.parse(feed_url)
+            entries.extend(feed.entries)
+        except Exception as e:
+            print("Feed error:", e)
     return entries
 
 # -----------------------------
-# فلترة الأخبار المهمة فقط
+# فلترة أخبار الفوركس فقط
 # -----------------------------
-def is_important(title):
+def is_forex_related(title):
     title_lower = title.lower()
-    # تجاهل الأخبار العامة
-    if any(word.lower() in title_lower for word in IGNORE_KEYWORDS):
+    if any(word in title_lower for word in IGNORE_KEYWORDS):
         return False
-    # نشر الأخبار المهمة فقط
-    return any(keyword.lower() in title_lower for keyword in KEYWORDS)
+    return any(keyword in title_lower for keyword in FOREX_KEYWORDS)
 
 # -----------------------------
 # تشغيل البوت
 # -----------------------------
 def run_bot():
-    send_telegram("✅ بوت الأخبار الاقتصادية المهمة متصل وجاهز.")
+    send_telegram("✅ Bot started. Tracking Forex news only...")
     while True:
         news = get_news()
         for article in news:
@@ -95,34 +89,25 @@ def run_bot():
             link = article.link
             description = getattr(article, "summary", "")
 
-            if link not in posted_urls and is_important(title):
-                translated_title = translate_to_arabic(title)
-                translated_summary = translate_to_arabic(summarize_text(description))
+            if link not in posted_urls and is_forex_related(title):
+                summary = summarize_text(description)
 
-                # أيقونات حسب نوع الخبر
-                if any(k in title.lower() for k in ["ذهب", "gold", "xauusd"]):
-                    alert_icon = "🟢🔥"
-                elif any(k in title.lower() for k in ["دولار", "usd", "us dollar"]):
-                    alert_icon = "💵⚡"
-                else:
-                    alert_icon = "📈"
-
-                msg = f"{alert_icon} <b>{translated_title}</b>\n{translated_summary}\n🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
+                msg = f"💹 <b>{html.escape(title)}</b>\n{html.escape(summary)}\n🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
                 send_telegram(msg)
                 posted_urls.add(link)
-                time.sleep(2)  # تخفيف الضغط على Telegram API
+                time.sleep(2)
 
-        time.sleep(600)  # تحقق كل 10 دقائق
+        time.sleep(600)
 
 # -----------------------------
 # Web Service باستخدام Flask
 # -----------------------------
 app = Flask(__name__)
-threading.Thread(target=run_bot).start()  # تشغيل البوت في Thread مستقل
+threading.Thread(target=run_bot).start()
 
 @app.route("/")
 def home():
-    return "Bot is running ✅"
+    return "Forex Bot is running ✅"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
