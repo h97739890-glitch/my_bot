@@ -4,6 +4,7 @@ import requests
 from flask import Flask
 import threading
 from googletrans import Translator
+import html  # بديل لـ cgi.escape
 
 # -----------------------------
 # إعدادات البوت و Telegram
@@ -28,10 +29,11 @@ def send_telegram(text):
 
 def translate_to_arabic(text):
     try:
-        return translator.translate(text, src='en', dest='ar').text
+        translated = translator.translate(text, src='en', dest='ar').text
+        return html.escape(translated)
     except Exception as e:
         print("Translation error:", e)
-        return text  # ترجع النص الأصلي إذا فشلت الترجمة
+        return html.escape(text)  # النص الأصلي إذا فشلت الترجمة
 
 def get_news():
     feed = feedparser.parse(RSS_URL)
