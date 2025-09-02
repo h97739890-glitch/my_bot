@@ -1,7 +1,6 @@
 import time
 import feedparser
 import requests
-from deep_translator import PonsTranslator
 from flask import Flask
 import threading
 
@@ -14,6 +13,28 @@ RSS_URL = "https://www.marketwatch.com/rss/topstories/metals"
 CHANNEL_LINK = "https://t.me/OnyDiwaniya"  # رابط القناة
 
 # -----------------------------
+# دالة الترجمة باستخدام LibreTranslate
+# -----------------------------
+def translate_to_arabic(text):
+    try:
+        url = "https://libretranslate.de/translate"
+        params = {
+            "q": text,
+            "source": "en",
+            "target": "ar",
+            "format": "text"
+        }
+        response = requests.post(url, data=params, timeout=10)
+        if response.status_code == 200:
+            return response.json()['translatedText']
+        else:
+            print("Translation failed, status:", response.status_code)
+            return text
+    except Exception as e:
+        print("Translation error:", e)
+        return text  # ترجع النص الأصلي إذا فشلت الترجمة
+
+# -----------------------------
 # دوال البوت
 # -----------------------------
 def send_telegram(text):
@@ -23,15 +44,6 @@ def send_telegram(text):
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
         print("Telegram error:", e)
-
-translator = PonsTranslator(source='en', target='ar')
-
-def translate_to_arabic(text):
-    try:
-        return translator.translate(text)
-    except Exception as e:
-        print("Translation error:", e)
-        return text  # ترجع النص الأصلي إذا فشلت الترجمة
 
 def get_news():
     feed = feedparser.parse(RSS_URL)
@@ -46,7 +58,7 @@ def run_bot():
         for article in news:
             title = article.title
             link = article.link
-            if link not in posted_urls:  # نشر جميع الأخبار بدون فلترة
+            if link not in posted_urls:  # نشر جميع الأخبار
                 translated_title = translate_to_arabic(title)
                 msg = f"📰 {translated_title}\n🔗 قناتنا: {CHANNEL_LINK}"  # رابط القناة
                 send_telegram(msg)
