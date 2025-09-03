@@ -19,11 +19,13 @@ CHANNEL_LINK = "https://t.me/OnyDiwaniya"
 RSS_FEEDS = [
     "https://www.investing.com/rss/news.rss",
     "https://www.dailyfx.com/feeds/forex.xml",
-    "https://www.fxstreet.com/rss/news"
+    "https://www.fxstreet.com/rss/news",
+    "https://www.forexlive.com/feed/",
+    "https://www.reutersagency.com/feed/?best-topics=markets"
 ]
 
 # -----------------------------
-# الكلمات المفتاحية للفوركس
+# كلمات مفتاحية للفوركس
 # -----------------------------
 FOREX_KEYWORDS = [
     "forex", "currency", "exchange rate",
@@ -35,7 +37,8 @@ FOREX_KEYWORDS = [
     "cad", "loonie",
     "aud", "aussie",
     "nzd", "kiwi",
-    "central bank", "interest rate", "monetary policy"
+    "central bank", "interest rate", "monetary policy",
+    "gold", "silver", "oil", "nasdaq", "dow jones", "s&p"
 ]
 
 IGNORE_KEYWORDS = ["lottery", "jackpot", "crypto", "bitcoin", "lotto"]
@@ -53,11 +56,18 @@ def send_telegram(text):
     except Exception as e:
         print("Telegram error:", e)
 
+def translate_to_arabic(text):
+    try:
+        return GoogleTranslator(source="en", target="ar").translate(text)
+    except Exception as e:
+        print("Translation error:", e)
+        return text
+
 def summarize_text(text, max_words=25):
     words = text.split()
     if len(words) <= max_words:
         return text
-    return ' '.join(words[:max_words]) + "..."
+    return " ".join(words[:max_words]) + "..."
 
 def get_news():
     entries = []
@@ -79,20 +89,10 @@ def is_forex_related(title):
     return any(keyword in title_lower for keyword in FOREX_KEYWORDS)
 
 # -----------------------------
-# ترجمة باستخدام GoogleTranslator
-# -----------------------------
-def translate_text(text, target_lang="ar"):
-    try:
-        return GoogleTranslator(source="en", target=target_lang).translate(text)
-    except Exception as e:
-        print("Translation error:", e)
-        return text
-
-# -----------------------------
 # تشغيل البوت
 # -----------------------------
 def run_bot():
-    send_telegram("✅ Forex Bot started. Tracking news with translation...")
+    send_telegram("✅ Bot started. Tracking Forex news only...")
     while True:
         news = get_news()
         for article in news:
@@ -103,13 +103,13 @@ def run_bot():
             if link not in posted_urls and is_forex_related(title):
                 summary = summarize_text(description)
 
-                # ترجمة العنوان والملخص
-                translated_title = translate_text(title, "ar")
-                translated_summary = translate_text(summary, "ar")
+                # ترجمات
+                title_ar = translate_to_arabic(title)
+                summary_ar = translate_to_arabic(summary)
 
                 msg = (
-                    f"💹 <b>{html.escape(translated_title)}</b>\n"
-                    f"{html.escape(translated_summary)}\n\n"
+                    f"💹 <b>{html.escape(title_ar)}</b>\n"
+                    f"{html.escape(summary_ar)}\n\n"
                     f"🌍 <b>{html.escape(title)}</b>\n"
                     f"{html.escape(summary)}\n\n"
                     f"🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
@@ -129,7 +129,7 @@ threading.Thread(target=run_bot).start()
 
 @app.route("/")
 def home():
-    return "Forex Bot with translation is running ✅"
+    return "Forex Bot is running ✅"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
