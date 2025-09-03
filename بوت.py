@@ -50,7 +50,7 @@ posted_urls = set()
 # -----------------------------
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML"}
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
     try:
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
@@ -112,7 +112,8 @@ def run_bot():
                     f"{html.escape(summary_ar)}\n\n"
                     f"🌍 <b>{html.escape(title)}</b>\n"
                     f"{html.escape(summary)}\n\n"
-                    f"🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
+                    f"🔗 <a href='{link}'>المصدر</a>\n"
+                    f"📢 <a href='{CHANNEL_LINK}'>قناتنا</a>"
                 )
 
                 send_telegram(msg)
