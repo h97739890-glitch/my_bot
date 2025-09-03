@@ -2,3 +2,4 @@ requests==2.31.0
 feedparser==6.0.10
 flask==2.3.3
 googletrans==4.0.0-rc1
+deep-translator
