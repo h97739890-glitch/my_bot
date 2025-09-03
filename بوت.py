@@ -14,14 +14,24 @@ TELEGRAM_CHAT_ID = "@OnyDiwaniya"
 CHANNEL_LINK = "https://t.me/OnyDiwaniya"
 
 # -----------------------------
-# مصادر الأخبار
+# مصادر RSS (أخبار + تويتر)
 # -----------------------------
 RSS_FEEDS = [
+    # مصادر الأخبار
     "https://www.investing.com/rss/news.rss",
     "https://www.dailyfx.com/feeds/forex.xml",
     "https://www.fxstreet.com/rss/news",
     "https://www.forexlive.com/feed/",
-    "https://www.reutersagency.com/feed/?best-topics=markets"
+    "https://www.reutersagency.com/feed/?best-topics=markets",
+
+    # تويتر عبر Nitter
+    "https://nitter.net/CNBC/rss",
+    "https://nitter.net/ABC/rss",
+    "https://nitter.net/TIME/rss",
+    "https://nitter.net/Reuters/rss",
+    "https://nitter.net/Bloomberg/rss",
+    "https://nitter.net/CBSEveningNews/rss",
+    "https://nitter.net/CBSNews/rss"
 ]
 
 posted_urls = set()
@@ -31,12 +41,7 @@ posted_urls = set()
 # -----------------------------
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False
-    }
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
     try:
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
@@ -66,10 +71,10 @@ def get_news():
     return entries
 
 # -----------------------------
-# تشغيل البوت (بدون فلترة)
+# تشغيل البوت
 # -----------------------------
 def run_bot():
-    send_telegram("✅ Bot started. Publishing ALL news (no filters)...")
+    send_telegram("✅ Bot started. Tracking Forex + Twitter accounts...")
     while True:
         news = get_news()
         for article in news:
@@ -85,7 +90,7 @@ def run_bot():
                 summary_ar = translate_to_arabic(summary)
 
                 msg = (
-                    f"📰 <b>{html.escape(title_ar)}</b>\n"
+                    f"💹 <b>{html.escape(title_ar)}</b>\n"
                     f"{html.escape(summary_ar)}\n\n"
                     f"🌍 <b>{html.escape(title)}</b>\n"
                     f"{html.escape(summary)}\n\n"
@@ -107,7 +112,7 @@ threading.Thread(target=run_bot).start()
 
 @app.route("/")
 def home():
-    return "News Bot is running ✅"
+    return "Bot is running ✅"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
