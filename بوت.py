@@ -27,21 +27,7 @@ RSS_FEEDS = [
 # -----------------------------
 # كلمات مفتاحية للفوركس
 # -----------------------------
-FOREX_KEYWORDS = [
-    "forex", "currency", "exchange rate",
-    "usd", "dollar",
-    "eur", "euro",
-    "gbp", "pound", "sterling",
-    "jpy", "yen",
-    "chf", "swiss franc",
-    "cad", "loonie",
-    "aud", "aussie",
-    "nzd", "kiwi",
-    "central bank", "interest rate", "monetary policy",
-    "gold", "silver", "oil", "nasdaq", "dow jones", "s&p"
-]
 
-IGNORE_KEYWORDS = ["lottery", "jackpot", "crypto", "bitcoin", "lotto"]
 
 posted_urls = set()
 
