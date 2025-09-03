@@ -14,7 +14,7 @@ TELEGRAM_CHAT_ID = "@OnyDiwaniya"
 CHANNEL_LINK = "https://t.me/OnyDiwaniya"
 
 # -----------------------------
-# مصادر أخبار الفوركس
+# مصادر الأخبار
 # -----------------------------
 RSS_FEEDS = [
     "https://www.investing.com/rss/news.rss",
@@ -24,11 +24,6 @@ RSS_FEEDS = [
     "https://www.reutersagency.com/feed/?best-topics=markets"
 ]
 
-# -----------------------------
-# كلمات مفتاحية للفوركس
-# -----------------------------
-
-
 posted_urls = set()
 
 # -----------------------------
@@ -36,7 +31,12 @@ posted_urls = set()
 # -----------------------------
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": False
+    }
     try:
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
@@ -66,15 +66,10 @@ def get_news():
     return entries
 
 # -----------------------------
-# فلترة أخبار الفوركس فقط
-# -----------------------------
-
-
-# -----------------------------
-# تشغيل البوت
+# تشغيل البوت (بدون فلترة)
 # -----------------------------
 def run_bot():
-    send_telegram("✅ Bot started. Tracking Forex news only...")
+    send_telegram("✅ Bot started. Publishing ALL news (no filters)...")
     while True:
         news = get_news()
         for article in news:
@@ -82,7 +77,7 @@ def run_bot():
             link = article.link
             description = getattr(article, "summary", "")
 
-            if link not in posted_urls and is_forex_related(title):
+            if link not in posted_urls:
                 summary = summarize_text(description)
 
                 # ترجمات
@@ -90,7 +85,7 @@ def run_bot():
                 summary_ar = translate_to_arabic(summary)
 
                 msg = (
-                    f"💹 <b>{html.escape(title_ar)}</b>\n"
+                    f"📰 <b>{html.escape(title_ar)}</b>\n"
                     f"{html.escape(summary_ar)}\n\n"
                     f"🌍 <b>{html.escape(title)}</b>\n"
                     f"{html.escape(summary)}\n\n"
@@ -112,7 +107,7 @@ threading.Thread(target=run_bot).start()
 
 @app.route("/")
 def home():
-    return "Forex Bot is running ✅"
+    return "News Bot is running ✅"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
