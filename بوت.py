@@ -68,11 +68,7 @@ def get_news():
 # -----------------------------
 # فلترة أخبار الفوركس فقط
 # -----------------------------
-def is_forex_related(title):
-    title_lower = title.lower()
-    if any(word in title_lower for word in IGNORE_KEYWORDS):
-        return False
-    return any(keyword in title_lower for keyword in FOREX_KEYWORDS)
+
 
 # -----------------------------
 # تشغيل البوت
