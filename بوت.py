@@ -4,7 +4,7 @@ import requests
 import threading
 from flask import Flask
 import html
-from googletrans import Translator  # إضافة الترجمة
+from deep_translator import GoogleTranslator
 
 # -----------------------------
 # إعدادات البوت و Telegram
@@ -41,7 +41,6 @@ FOREX_KEYWORDS = [
 IGNORE_KEYWORDS = ["lottery", "jackpot", "crypto", "bitcoin", "lotto"]
 
 posted_urls = set()
-translator = Translator()
 
 # -----------------------------
 # دوال البوت
@@ -59,13 +58,6 @@ def summarize_text(text, max_words=25):
     if len(words) <= max_words:
         return text
     return ' '.join(words[:max_words]) + "..."
-
-def translate_text(text, dest="ar"):
-    try:
-        return translator.translate(text, dest=dest).text
-    except Exception as e:
-        print("Translation error:", e)
-        return text  # fallback للنص الأصلي
 
 def get_news():
     entries = []
@@ -87,10 +79,20 @@ def is_forex_related(title):
     return any(keyword in title_lower for keyword in FOREX_KEYWORDS)
 
 # -----------------------------
+# ترجمة باستخدام GoogleTranslator
+# -----------------------------
+def translate_text(text, target_lang="ar"):
+    try:
+        return GoogleTranslator(source="en", target=target_lang).translate(text)
+    except Exception as e:
+        print("Translation error:", e)
+        return text
+
+# -----------------------------
 # تشغيل البوت
 # -----------------------------
 def run_bot():
-    send_telegram("✅ Bot started. Tracking Forex news with translation...")
+    send_telegram("✅ Forex Bot started. Tracking news with translation...")
     while True:
         news = get_news()
         for article in news:
@@ -102,14 +104,17 @@ def run_bot():
                 summary = summarize_text(description)
 
                 # ترجمة العنوان والملخص
-                translated_title = translate_text(title)
-                translated_summary = translate_text(summary)
+                translated_title = translate_text(title, "ar")
+                translated_summary = translate_text(summary, "ar")
 
                 msg = (
                     f"💹 <b>{html.escape(translated_title)}</b>\n"
-                    f"{html.escape(translated_summary)}\n"
+                    f"{html.escape(translated_summary)}\n\n"
+                    f"🌍 <b>{html.escape(title)}</b>\n"
+                    f"{html.escape(summary)}\n\n"
                     f"🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
                 )
+
                 send_telegram(msg)
                 posted_urls.add(link)
                 time.sleep(2)
@@ -124,7 +129,7 @@ threading.Thread(target=run_bot).start()
 
 @app.route("/")
 def home():
-    return "Forex Bot with Translation is running ✅"
+    return "Forex Bot with translation is running ✅"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
