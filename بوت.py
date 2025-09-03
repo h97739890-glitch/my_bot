@@ -4,6 +4,7 @@ import requests
 import threading
 from flask import Flask
 import html
+from googletrans import Translator  # إضافة الترجمة
 
 # -----------------------------
 # إعدادات البوت و Telegram
@@ -40,6 +41,7 @@ FOREX_KEYWORDS = [
 IGNORE_KEYWORDS = ["lottery", "jackpot", "crypto", "bitcoin", "lotto"]
 
 posted_urls = set()
+translator = Translator()
 
 # -----------------------------
 # دوال البوت
@@ -57,6 +59,13 @@ def summarize_text(text, max_words=25):
     if len(words) <= max_words:
         return text
     return ' '.join(words[:max_words]) + "..."
+
+def translate_text(text, dest="ar"):
+    try:
+        return translator.translate(text, dest=dest).text
+    except Exception as e:
+        print("Translation error:", e)
+        return text  # fallback للنص الأصلي
 
 def get_news():
     entries = []
@@ -81,7 +90,7 @@ def is_forex_related(title):
 # تشغيل البوت
 # -----------------------------
 def run_bot():
-    send_telegram("✅ Bot started. Tracking Forex news only...")
+    send_telegram("✅ Bot started. Tracking Forex news with translation...")
     while True:
         news = get_news()
         for article in news:
@@ -92,7 +101,15 @@ def run_bot():
             if link not in posted_urls and is_forex_related(title):
                 summary = summarize_text(description)
 
-                msg = f"💹 <b>{html.escape(title)}</b>\n{html.escape(summary)}\n🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
+                # ترجمة العنوان والملخص
+                translated_title = translate_text(title)
+                translated_summary = translate_text(summary)
+
+                msg = (
+                    f"💹 <b>{html.escape(translated_title)}</b>\n"
+                    f"{html.escape(translated_summary)}\n"
+                    f"🔗 <a href='{CHANNEL_LINK}'>قناتنا</a>"
+                )
                 send_telegram(msg)
                 posted_urls.add(link)
                 time.sleep(2)
@@ -107,7 +124,7 @@ threading.Thread(target=run_bot).start()
 
 @app.route("/")
 def home():
-    return "Forex Bot is running ✅"
+    return "Forex Bot with Translation is running ✅"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
