@@ -1,7 +1,7 @@
 requests
-python-telegram-bot
 pandas
-pandas_ta
 matplotlib
-pytz
+pandas_ta
+python-telegram-bot==20.3
 flask
+pytz
