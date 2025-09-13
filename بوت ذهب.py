@@ -6,16 +6,34 @@ import matplotlib.pyplot as plt
 import pytz
 from telegram import Bot
 from datetime import datetime
+from flask import Flask
+import threading
 
+# =====================
 # إعدادات البوت
-TELEGRAM_TOKEN = 'YOUR_BOT_TOKEN'
-CHANNEL_ID = '@YourChannelUsername'
-GOLD_API_KEY = 'YOUR_GOLD_API_KEY'
+# =====================
+TELEGRAM_TOKEN = '6290973236:AAHxSHfLGrusj4rCxgMP2IoxxP9743wH2As'
+CHANNEL_ID = '@OnyDiwaniya'
+GOLD_API_KEY = 'goldapi-hmsssmfi4p28f-io'
 
 # المنطقة الزمنية
 baghdad_tz = pytz.timezone('Asia/Baghdad')
 
-# دالة لجلب أسعار الذهب التاريخية (ساعية)
+# =====================
+# Flask web server صغير
+# =====================
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return "Gold Bot is running!"
+
+def run_flask():
+    app.run(host="0.0.0.0", port=8080)
+
+# =====================
+# دالة لجلب أسعار الذهب التاريخية
+# =====================
 def get_gold_prices():
     url = "https://www.goldapi.io/api/XAU/USD/1h"  # افترض أن GoldAPI توفر بيانات كل ساعة
     headers = {'x-access-token': GOLD_API_KEY, 'Content-Type': 'application/json'}
@@ -27,7 +45,9 @@ def get_gold_prices():
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     return df
 
+# =====================
 # تحليل الذهب وإعطاء توصية
+# =====================
 def analyze_gold(df):
     df['RSI'] = ta.rsi(df['price'], length=14)
     df['SMA50'] = ta.sma(df['price'], length=50)
@@ -48,7 +68,9 @@ def analyze_gold(df):
 
     return price, rsi, sma50, ema20, recommendation
 
+# =====================
 # رسم المخطط وحفظه كصورة
+# =====================
 def plot_chart(df):
     plt.figure(figsize=(10,5))
     plt.plot(df['timestamp'], df['price'], label='Gold Price', color='gold')
@@ -63,13 +85,17 @@ def plot_chart(df):
     plt.savefig("gold_chart.png")
     plt.close()
 
+# =====================
 # إرسال الرسالة مع الصورة
+# =====================
 async def send_to_telegram(message):
     bot = Bot(token=TELEGRAM_TOKEN)
     await bot.send_message(chat_id=CHANNEL_ID, text=message)
     await bot.send_photo(chat_id=CHANNEL_ID, photo=open("gold_chart.png", "rb"))
 
-# الوظيفة الرئيسية
+# =====================
+# الوظيفة الرئيسية للبوت
+# =====================
 async def main():
     df = get_gold_prices()
     price, rsi, sma50, ema20, recommendation = analyze_gold(df)
@@ -89,14 +115,22 @@ async def main():
     
     await send_to_telegram(message)
 
+# =====================
 # تشغيل البوت كل ساعة
+# =====================
 async def scheduler():
     while True:
         try:
             await main()
         except Exception as e:
             print("Error:", e)
-        await asyncio.sleep(3600)  # تحديث كل ساعة
+        await asyncio.sleep(3600)  # كل ساعة
 
+# =====================
+# تشغيل Flask في Thread منفصل
+# =====================
 if __name__ == "__main__":
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+    
     asyncio.run(scheduler())
