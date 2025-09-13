@@ -1,5 +1,4 @@
 import requests
-import pandas as pd
 from telegram import Bot
 from datetime import datetime
 
