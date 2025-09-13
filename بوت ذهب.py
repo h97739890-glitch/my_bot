@@ -1,13 +1,18 @@
 import requests
+import asyncio
 from telegram import Bot
 from datetime import datetime
 
+# =====================
 # إعدادات البوت
-TELEGRAM_TOKEN = '6290973236:AAHxSHfLGrusj4rCxgMP2IoxxP9743wH2As'
-CHANNEL_ID = '@OnyDiwaniya'
-GOLD_API_KEY = 'goldapi-hmsssmfi4p28f-io'
+# =====================
+TELEGRAM_TOKEN = '6290973236:AAHxSHfLGrusj4rCxgMP2IoxxP9743wH2As'       # ضع توكن بوتك هنا
+CHANNEL_ID = '@OnyDiwaniya'     # ضع معرف القناة هنا
+GOLD_API_KEY = 'goldapi-hmsssmfi4p28f-io'      # ضع مفتاح API لأسعار الذهب هنا
 
-# دالة لجلب سعر الذهب الحالي
+# =====================
+# دالة لجلب سعر الذهب
+# =====================
 def get_gold_price():
     url = "https://www.goldapi.io/api/XAU/USD"
     headers = {'x-access-token': GOLD_API_KEY, 'Content-Type': 'application/json'}
@@ -15,9 +20,10 @@ def get_gold_price():
     data = response.json()
     return data['price']
 
-# دالة بسيطة لتحليل السعر
+# =====================
+# تحليل بسيط للسعر
+# =====================
 def analyze_gold(price):
-    # تحليل بسيط: إشعار حسب مستوى السعر
     if price > 2000:
         trend = "ارتفاع محتمل ⚠️"
     elif price < 1800:
@@ -26,15 +32,25 @@ def analyze_gold(price):
         trend = "سعر مستقر 🟢"
     return trend
 
-# إرسال التحليل للقناة
-def send_to_telegram(message):
+# =====================
+# إرسال الرسالة بطريقة async
+# =====================
+async def send_to_telegram(message):
     bot = Bot(token=TELEGRAM_TOKEN)
-    bot.send_message(chat_id=CHANNEL_ID, text=message)
+    await bot.send_message(chat_id=CHANNEL_ID, text=message)
 
-# تنفيذ البوت
-if __name__ == "__main__":
+# =====================
+# Main function
+# =====================
+async def main():
     price = get_gold_price()
     trend = analyze_gold(price)
     date = datetime.now().strftime("%Y-%m-%d %H:%M")
     message = f"تحليل الذهب اليوم ({date}):\nالسعر الحالي: ${price}\nالاتجاه المتوقع: {trend}"
-    send_to_telegram(message)
+    await send_to_telegram(message)
+
+# =====================
+# تشغيل البوت
+# =====================
+if __name__ == "__main__":
+    asyncio.run(main())
