@@ -1,5 +1,5 @@
 {
-  "latest_version_code": 40,
+  "latest_version_code": 401,
   "force_update": true,
   "update_url": "https://github.com/h97739890-glitch/my_bot/raw/refs/heads/main/app-debug.apk",
   "update_message": "📢 يوجد تحديث جديد للتطبيق.\nيرجى الضغط على 'تحديث' لتحميل الإصدار الجديد."
